@@ -23,6 +23,10 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int my_syscall(char*);
+int getppid(void);
+int my_yield(int);
+int yield(void);
 
 // ulib.c
 int stat(const char*, struct stat*);
