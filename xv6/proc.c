@@ -220,9 +220,8 @@ userinit(void)
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
   ///2022-04-01
+  // initalize MLFQ state (total ticks)
   num_MLFQ.total_ticks_MLFQ = 0;
-  num_MLFQ.HIGH = 0;
-  num_MLFQ.MID = 0;
   ///
   p = allocproc();
   cprintf("user\n");  
