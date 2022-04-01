@@ -21,14 +21,12 @@ extern void trapret(void);
 static void wakeup1(void *chan);
 
 
-/*2022-04-01*/
+/////////////////*2022-04-01*////////////
 struct {
   int total_ticks_MLFQ;
-  int HIGH;
-  int MID;
 } num_MLFQ;
 
-
+// Find the process which is runnable by MLFQ Policy
 struct proc*
 find_runnable_MLFQ(){
   enum MLFQ_level lv= LOW;
@@ -38,12 +36,18 @@ find_runnable_MLFQ(){
   rp = ptable.proc;
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 	if(p->state == RUNNABLE){
+	      //The scheduler chooses the next process that’s ready from the MLFQ. 
+	      //If any process is found in the higher priority queue, 
+	      //a process in the lower queue cannot be selected 
+	      //until the upper level queue becomes empty.
           if(p->MLFQ_lv > lv){
 			rp = p;
             lv = p->MLFQ_lv;
 			tick = p->tick;	
           }
 		  else if(p->MLFQ_lv == lv){
+		  ///Each level adopts the Round Robin policy 
+		  ///with a different time quantum.
 			if(lv == HIGH){
 				if(p->tick >= tick)
 				  continue;
@@ -69,20 +73,24 @@ void
 adjust_MLFQ_state(struct proc *p){
   p->tick++;
   num_MLFQ.total_ticks_MLFQ++;
+  //Each queue has a different time allotment.
   if(p->MLFQ_lv == HIGH && p->tick >= 5){
 	p->MLFQ_lv = MID;
     p->tick = 0;
-	cprintf("adjust-h %d\n",p->pid); 
+	// for debug
+	//cprintf("adjust-h %d\n",p->pid); 
   }
   else if(p->MLFQ_lv == MID && p->tick >= 10){
 	p->MLFQ_lv = LOW;
     p->tick = 0;
-	cprintf("adjust-m %d\n",p->pid); 
+	// for debug
+	//cprintf("adjust-m %d\n",p->pid); 
   }
 }
 
 void
 init_MLFQ_state(){
+  //To prevent starvation, priority boosting needs to be performed periodically
   if(num_MLFQ.total_ticks_MLFQ >= 100){
     struct proc *p;
 	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
@@ -424,34 +432,31 @@ scheduler(void)
 	
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-	  ///2022-04-01    
-	  
-	  p = find_runnable_MLFQ();  
-      
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-	  swtch(&(c->scheduler), p->context);	
-      switchkvm();
-
-///2022-04-01      
-      adjust_MLFQ_state(p);
-      init_MLFQ_state();
-      
-
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
-	
-
     
-    release(&ptable.lock);
+	////2022-04-01//////////////    
+	p = find_runnable_MLFQ();  
+	// Find the process which is runnable by MLFQ Policy
+    //  
 
+    // Switch to chosen process.  It is the process's job
+    // to release ptable.lock and then reacquire it
+    // before jumping back to us.
+    c->proc = p;
+    switchuvm(p);
+    p->state = RUNNING;
+	swtch(&(c->scheduler), p->context);	
+    switchkvm();
+
+    ///2022-04-01///////////////////
+    adjust_MLFQ_state(p);
+    init_MLFQ_state();
+      
+
+    // Process is done running for now.
+    // It should have changed its p->state before coming back.
+    c->proc = 0;
+
+    release(&ptable.lock);
   }
 }
 
