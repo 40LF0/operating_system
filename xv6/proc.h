@@ -32,6 +32,10 @@ struct context {
   uint eip;
 };
 
+/* 2022.03.31 MLFQ_level */
+enum MLFQ_level { LOW = 0, MID = 1, HIGH = 2};       
+// 2 is highest, 1 is middle ,0 is lowest level
+
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
@@ -49,6 +53,12 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+/// 2022.03.31 adding MLFQ state for implement MLFQ scheduling
+  int tick;                    // tick for MLFQ scheduling
+  enum MLFQ_level MLFQ_lv;     // Process MLFQ level
+
+
 };
 
 // Process memory is laid out contiguously, low addresses first:

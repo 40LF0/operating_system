@@ -20,6 +20,86 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+
+/*2022-04-01*/
+struct {
+  int total_ticks_MLFQ;
+  int HIGH;
+  int MID;
+} num_MLFQ;
+
+
+struct proc*
+find_runnable_MLFQ(){
+  enum MLFQ_level lv= LOW;
+  int tick = 10000;
+  struct proc* p;
+  struct proc* rp;
+  rp = ptable.proc;
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+	if(p->state == RUNNABLE){
+          if(p->MLFQ_lv > lv){
+			rp = p;
+            lv = p->MLFQ_lv;
+			tick = p->tick;	
+          }
+		  else if(p->MLFQ_lv == lv){
+			if(lv == HIGH){
+				if(p->tick >= tick)
+				  continue;
+			}
+			else if(lv == MID){
+				if((p->tick)%2 >= (tick%2))
+				  continue;
+			}
+			else if(lv == LOW){
+				if((p->tick)%4 >= (tick%4))
+				  continue;
+			}
+			rp = p;
+			tick = p->tick;
+		  }
+	}     
+  }
+ 
+  return rp;
+}
+
+void
+adjust_MLFQ_state(struct proc *p){
+  p->tick++;
+  num_MLFQ.total_ticks_MLFQ++;
+  if(p->MLFQ_lv == HIGH && p->tick >= 5){
+	p->MLFQ_lv = MID;
+    p->tick = 0;
+	cprintf("adjust-h %d\n",p->pid); 
+  }
+  else if(p->MLFQ_lv == MID && p->tick >= 10){
+	p->MLFQ_lv = LOW;
+    p->tick = 0;
+	cprintf("adjust-m %d\n",p->pid); 
+  }
+}
+
+void
+init_MLFQ_state(){
+  if(num_MLFQ.total_ticks_MLFQ >= 100){
+    struct proc *p;
+	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+	  if(p->state == RUNNABLE){
+		p->tick = 0;    
+        p->MLFQ_lv = HIGH;	
+	  }		
+	}
+    num_MLFQ.total_ticks_MLFQ = 0;
+
+  }
+}
+
+
+
+
+/**/
 void
 pinit(void)
 {
@@ -89,6 +169,14 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  /// 2022.03.31 init MLFQ state
+  p->tick = 0;
+  p->MLFQ_lv = HIGH;
+  num_MLFQ.HIGH++;
+  ///
+
+
+
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -122,9 +210,13 @@ userinit(void)
 {
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
-
+  ///2022-04-01
+  num_MLFQ.total_ticks_MLFQ = 0;
+  num_MLFQ.HIGH = 0;
+  num_MLFQ.MID = 0;
+  ///
   p = allocproc();
-  
+  cprintf("user\n");  
   initproc = p;
   if((p->pgdir = setupkvm()) == 0)
     panic("userinit: out of memory?");
@@ -325,16 +417,17 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  
+  ///2022-04-01 
   for(;;){
     // Enable interrupts on this processor.
     sti();
-
+	
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
+	  ///2022-04-01    
+	  
+	  p = find_runnable_MLFQ();  
+      
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
@@ -342,14 +435,21 @@ scheduler(void)
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
+	  swtch(&(c->scheduler), p->context);	
       switchkvm();
+
+///2022-04-01      
+      adjust_MLFQ_state(p);
+      init_MLFQ_state();
+      
+
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
-    }
+	
+
+    
     release(&ptable.lock);
 
   }
@@ -382,13 +482,16 @@ sched(void)
 }
 
 // Give up the CPU for one scheduling round.
-void
+
+// 2022.03.31 change datatype of yield fun (void to int)
+int
 yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
   sched();
   release(&ptable.lock);
+  return 0;
 }
 
 // A fork child's very first scheduling by scheduler()
