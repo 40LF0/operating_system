@@ -68,7 +68,7 @@ find_runnable_MLFQ(){
  
   return rp;
 }
-
+// Adjust MLFQ state incluing incresing tick, changing lv of MLFQ
 void
 adjust_MLFQ_state(struct proc *p){
   p->tick++;
@@ -88,6 +88,7 @@ adjust_MLFQ_state(struct proc *p){
   }
 }
 
+// priority boosting
 void
 init_MLFQ_state(){
   //To prevent starvation, priority boosting needs to be performed periodically
@@ -449,7 +450,9 @@ scheduler(void)
 
     ///2022-04-01///////////////////
     adjust_MLFQ_state(p);
+    // Adjust MLFQ state incluing incresing tick, changing lv of MLFQ
     init_MLFQ_state();
+    // priority boosting
       
 
     // Process is done running for now.
