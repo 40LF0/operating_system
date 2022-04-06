@@ -36,6 +36,10 @@ struct context {
 enum MLFQ_level { LOW = 0, MID = 1, HIGH = 2};       
 // 2 is highest, 1 is middle ,0 is lowest level
 
+/*2022.04.07 Process_mode*/
+enum Proc_mode { MLFQ = 0, Stride = 1};
+// MLFQ is default
+
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
@@ -54,11 +58,14 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 
-/// 2022.03.31 adding MLFQ state for implement MLFQ scheduling
+/// 2022.03.31 adding MLFQ state for implementing MLFQ scheduling
   int tick;                    // tick for MLFQ scheduling
   enum MLFQ_level MLFQ_lv;     // Process MLFQ level
 
-
+/// 2022.04.07 adding Stride state for combining Stride 
+  enum Proc_mode proc_mode;    // proc  mode wheather MLFQ or Stride
+  int CPU_SHARE;			   // CPU share for stride scheduling
+  int PASS;					   // cpu time the proc use in stride mode
 };
 
 // Process memory is laid out contiguously, low addresses first:

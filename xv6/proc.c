@@ -19,7 +19,32 @@ extern void forkret(void);
 extern void trapret(void);
 
 static void wakeup1(void *chan);
+/////////////////*2022-04-07*////////////
+struct num_Stride{
+  int CPU_share_Stride;
+  int PASS_MLFQ;
+  int PASS_Stride;
+} num_Stride;
 
+enum Proc_mode
+sche_mode(void){
+  return MLFQ;
+}
+
+struct proc*
+find_runnable_Stride(void){
+  return &ptable.proc[0];
+}
+
+void
+adjust_Stride_state(struct proc* p){
+
+}
+
+void
+revaluate_PASS(enum Proc_mode schedule_mode){
+
+}
 
 /////////////////*2022-04-01*////////////
 struct {
@@ -181,8 +206,10 @@ found:
   /// 2022.03.31 init MLFQ state
   p->tick = 0;
   p->MLFQ_lv = HIGH;
-  num_MLFQ.HIGH++;
-  ///
+  /// 2022.04.07 init Stride state
+  p-> proc_mode = MLFQ;
+  p-> CPU_SHARE = 0;
+  p-> PASS = 0;
 
 
 
@@ -219,10 +246,18 @@ userinit(void)
 {
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
+  
   ///2022-04-01
   // initalize MLFQ state (total ticks)
   num_MLFQ.total_ticks_MLFQ = 0;
-  ///
+  
+  ///2022-04-07
+  // initalize Stride state
+  num_Stride.CPU_share_Stride = 0;
+  num_Stride.PASS_MLFQ = 0;
+  num_Stride.PASS_Stride = 0;
+
+
   p = allocproc();
   cprintf("user\n");  
   initproc = p;
@@ -425,18 +460,30 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  ///2022-04-01 
+  ///2022-04-07
+  enum Proc_mode schedule_mode = MLFQ;
+ 
   for(;;){
     // Enable interrupts on this processor.
     sti();
 	
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    
-	////2022-04-01//////////////    
-	p = find_runnable_MLFQ();  
-	// Find the process which is runnable by MLFQ Policy
-    //  
+	
+	////2022-04-07/////////////
+	schedule_mode = sche_mode();
+	
+	if(schedule_mode == MLFQ){    
+	  ////2022-04-01//////////////    
+	  p = find_runnable_MLFQ();  
+	  // Find the process which is runnable by MLFQ Policy
+    }
+	else if(schedule_mode == Stride){
+	  p = find_runnable_Stride();
+	} 
+	else {
+	  p = find_runnable_Stride();
+	} 
 
     // Switch to chosen process.  It is the process's job
     // to release ptable.lock and then reacquire it
@@ -447,11 +494,18 @@ scheduler(void)
 	swtch(&(c->scheduler), p->context);	
     switchkvm();
 
-    ///2022-04-01///////////////////
-    adjust_MLFQ_state(p);
-    // Adjust MLFQ state incluing incresing tick, changing lv of MLFQ
-    init_MLFQ_state();
-    // priority boosting
+	if(schedule_mode == MLFQ){
+      ///2022-04-01///////////////////
+      adjust_MLFQ_state(p);
+      // Adjust MLFQ state incluing incresing tick, changing lv of MLFQ
+      init_MLFQ_state();
+      // priority boosting
+	}
+	else if(schedule_mode == Stride){
+	  adjust_Stride_state(p);
+	}
+
+	revaluate_PASS(schedule_mode);
       
 
     // Process is done running for now.
