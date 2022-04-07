@@ -33,11 +33,7 @@ sys_my_yield(void){
 //#1 defined function which name is sys_ + function name you want
 int
 sys_yield(void){
-	int num;
-    num = yield();
-     if(argint(0,&num)!=0)
-          return -1;
-     return 0;
+	return yield();
 }
 // #2
 // add syscall by modifing in file syscall.h syscall.c
@@ -51,6 +47,24 @@ sys_yield(void){
 // #4
 // add syscall that is used in user stack in file usys.S
 //SYSCALL(yield)
+
+// 2022-04-07 wrapper fun for systemcall getlev
+int
+sys_getlev(void){
+  return getlev();
+}
+
+// 2022-04-07 wrapper fun for systemcall set_cpu_share
+int
+sys_set_cpu_share(void){
+  int num;
+  //Decode argument using argin
+  if (argint(0,&num) < 0) 
+	return -1; 
+  return set_cpu_share(num);
+
+}
+
 
 
 

@@ -28,22 +28,47 @@ struct num_Stride{
 
 enum Proc_mode
 sche_mode(void){
-  return MLFQ;
+  if(num_Stride.PASS_MLFQ <= num_Stride.PASS_Stride)
+	return MLFQ;
+  else
+	return Stride;
 }
 
 struct proc*
 find_runnable_Stride(void){
-  return &ptable.proc[0];
+  struct proc* p;
+  int min_PASS = 2147483645;
+  struct proc* rp;
+  rp = &ptable.proc[0];
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state == RUNNABLE && p->proc_mode == Stride){
+	  if(p->PASS < min_PASS){
+		rp = p;
+        min_PASS = p-> PASS;	  
+	  }
+    }
+  }
+  return rp;
 }
 
 void
 adjust_Stride_state(struct proc* p){
-
+  p->PASS = p->PASS + (10000/(p->CPU_SHARE));
 }
 
 void
-revaluate_PASS(enum Proc_mode schedule_mode){
-
+revaluate_PASS(enum Proc_mode schedule_mode,struct proc* p){
+  int CPU_S = num_Stride.CPU_share_Stride;
+  if(CPU_S == 0){
+	num_Stride.PASS_MLFQ = 0;
+    num_Stride.PASS_Stride = 0;
+  }
+  else if(schedule_mode == MLFQ){
+	num_Stride.PASS_MLFQ = num_Stride.PASS_MLFQ + (10000/(100-CPU_S));
+  }
+  else if(schedule_mode == Stride){
+    num_Stride.PASS_Stride = num_Stride.PASS_Stride + (10000/(p->CPU_SHARE));
+  }
 }
 
 /////////////////*2022-04-01*////////////
@@ -55,12 +80,12 @@ struct {
 struct proc*
 find_runnable_MLFQ(){
   enum MLFQ_level lv= LOW;
-  int tick = 10000;
+  int tick = 100;
   struct proc* p;
   struct proc* rp;
   rp = ptable.proc;
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-	if(p->state == RUNNABLE){
+	if(p->state == RUNNABLE && p->proc_mode == MLFQ){
 	      //The scheduler chooses the next process that’s ready from the MLFQ. 
 	      //If any process is found in the higher priority queue, 
 	      //a process in the lower queue cannot be selected 
@@ -368,7 +393,10 @@ exit(void)
 
   if(curproc == initproc)
     panic("init exiting");
-
+  // 2022-04-07 
+  // revaluate CPU_share_Stride
+  if(curproc -> proc_mode == Stride)
+	num_Stride.CPU_share_Stride = num_Stride.CPU_share_Stride - (curproc -> CPU_SHARE);
   // Close all open files.
   for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd]){
@@ -505,7 +533,7 @@ scheduler(void)
 	  adjust_Stride_state(p);
 	}
 
-	revaluate_PASS(schedule_mode);
+	revaluate_PASS(schedule_mode,p);
       
 
     // Process is done running for now.
@@ -554,6 +582,52 @@ yield(void)
   release(&ptable.lock);
   return 0;
 }
+
+int 
+getlev(void)
+{
+  enum MLFQ_level lv = myproc() -> MLFQ_lv;
+  if(lv == LOW){
+	return 0;
+  }
+  else if(lv == MID){
+	return 1;
+  }
+  else if(lv == HIGH){
+	return 2;
+  }
+  else{
+	return -1;
+  }
+}
+
+int
+set_cpu_share(int i){
+  if(myproc()->proc_mode == Stride){
+	if((num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE)) > 80){
+      //Error, CPU share for Stride cannot exceed 80%.
+	  return -1;
+	}
+	else{
+	  myproc()->CPU_SHARE = i;
+	  num_Stride.CPU_share_Stride =  num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE);
+	  return 0;
+	}
+  }
+  else{
+	if(num_Stride.CPU_share_Stride + i > 80){
+	  //Error, CPU share for Stride cannot exceed 80%.	
+	  return -1;
+	}
+    else{
+	  myproc()->CPU_SHARE = i;
+	  num_Stride.CPU_share_Stride =  num_Stride.CPU_share_Stride + i;
+	  return 0;
+	}
+  }
+
+}
+
 
 // A fork child's very first scheduling by scheduler()
 // will swtch here.  "Return" to user space.

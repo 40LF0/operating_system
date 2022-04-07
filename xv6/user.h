@@ -27,6 +27,8 @@ int my_syscall(char*);
 int getppid(void);
 int my_yield(int);
 int yield(void);
+int getlev(void);
+int set_cpu_share(int);
 
 // ulib.c
 int stat(const char*, struct stat*);
