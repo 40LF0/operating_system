@@ -20,12 +20,14 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 /////////////////*2022-04-07*////////////
+// info for Stride scheduliing
 struct num_Stride{
-  int CPU_share_Stride;
-  int PASS_MLFQ;
-  int PASS_Stride;
+  int CPU_share_Stride; // Sum of cpu_share of each stride_mode process
+  int PASS_MLFQ;        // used cpu_time for MLFQ scheduling
+  int PASS_Stride;      // used cpu_time for Stride scheduling
 } num_Stride;
 
+// fun to check what schedule mode is
 enum Proc_mode
 sche_mode(void){
   if(num_Stride.PASS_MLFQ <= num_Stride.PASS_Stride)
@@ -34,12 +36,14 @@ sche_mode(void){
 	return Stride;
 }
 
+//Find the process which is runnable by Stride Policy
 struct proc*
 find_runnable_Stride(void){
   struct proc* p;
   int min_PASS = 2147483645;
   struct proc* rp;
   rp = &ptable.proc[0];
+  // choose the process with the least pass
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->state == RUNNABLE && p->proc_mode == Stride){
 	  if(p->PASS < min_PASS){
@@ -51,18 +55,25 @@ find_runnable_Stride(void){
   return rp;
 }
 
+//fun to adjust the current process pass
 void
 adjust_Stride_state(struct proc* p){
   p->PASS = p->PASS + (10000/(p->CPU_SHARE));
 }
 
+// fun to revaluate Cpu_time schedule_mode used
 void
 revaluate_PASS(enum Proc_mode schedule_mode,struct proc* p){
   int CPU_S = num_Stride.CPU_share_Stride;
+  // if cpu share for stride is 0, and scheduling sys is still run
+  // then there is a gap between cpu share in real-time and intended
+  // to prevent it, we should init pass_MLFQ and pass_Stride
+  // when cpu_share for stride is 0 
   if(CPU_S == 0){
 	num_Stride.PASS_MLFQ = 0;
     num_Stride.PASS_Stride = 0;
   }
+  // revaluate cpu_time schedule_mode used
   else if(schedule_mode == MLFQ){
 	num_Stride.PASS_MLFQ = num_Stride.PASS_MLFQ + (10000/(100-CPU_S));
   }
@@ -583,6 +594,10 @@ yield(void)
   return 0;
 }
 
+
+// 2022-04-08
+// implement getlev and set_cpu_share
+// getlev is a syscall that gives you the lv of the current process in MLFQ
 int 
 getlev(void)
 {
@@ -600,28 +615,40 @@ getlev(void)
 	return -1;
   }
 }
-
+// 2022-04-08
+// set_cpu_share is a syscall 
+// that make current process Stride schedule_mode and 
+// set current process's cpu share
 int
 set_cpu_share(int i){
+  // logic of checing wheather cpu_share by request is possible 
+  // is slightly different depending on the mode of process
+
+  // current proccess mode is alreadly Stride mode
   if(myproc()->proc_mode == Stride){
 	if((num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE)) > 80){
       //Error, CPU share for Stride cannot exceed 80%.
 	  return -1;
 	}
 	else{
+	  // Change INI_ INFO about Stride scheduling for the process
 	  myproc()->CPU_SHARE = i;
 	  num_Stride.CPU_share_Stride =  num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE);
 	  return 0;
 	}
   }
+  // current proccess mode is not Stride mode
   else{
 	if(num_Stride.CPU_share_Stride + i > 80){
 	  //Error, CPU share for Stride cannot exceed 80%.	
 	  return -1;
 	}
     else{
+      // Set INI_ INFO about Stride scheduling for the process
 	  myproc()->CPU_SHARE = i;
 	  num_Stride.CPU_share_Stride =  num_Stride.CPU_share_Stride + i;
+	  // changing mode with Stride
+	  myproc()->proc_mode = Stride;
 	  return 0;
 	}
   }
