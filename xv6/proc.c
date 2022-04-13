@@ -161,7 +161,7 @@ init_MLFQ_state(){
         p->MLFQ_lv = HIGH;	
 	  }		
 	}
-    num_MLFQ.total_ticks_MLFQ = 0;
+  num_MLFQ.total_ticks_MLFQ = 0;
 
   }
 }
@@ -404,10 +404,6 @@ exit(void)
 
   if(curproc == initproc)
     panic("init exiting");
-  // 2022-04-07 
-  // revaluate CPU_share_Stride
-  if(curproc -> proc_mode == Stride)
-	num_Stride.CPU_share_Stride = num_Stride.CPU_share_Stride - (curproc -> CPU_SHARE);
   // Close all open files.
   for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd]){
@@ -542,6 +538,11 @@ scheduler(void)
 	}
 	else if(schedule_mode == Stride){
 	  adjust_Stride_state(p);
+        // 2022-04-07 
+  // revaluate CPU_share_Stride
+
+    num_Stride.CPU_share_Stride -= (p-> CPU_SHARE);
+
 	}
 
 	revaluate_PASS(schedule_mode,p);
