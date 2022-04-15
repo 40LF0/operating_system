@@ -23,14 +23,14 @@ static void wakeup1(void *chan);
 // info for Stride scheduliing
 struct num_Stride{
   int CPU_share_Stride; // Sum of cpu_share of each stride_mode process
-  int PASS_MLFQ;        // used cpu_time for MLFQ scheduling
-  int PASS_Stride;      // used cpu_time for Stride scheduling
+  double PASS_MLFQ;        // used cpu_time for MLFQ scheduling
+  double PASS_Stride;      // used cpu_time for Stride scheduling
 } num_Stride;
 
 // fun to check what schedule mode is
 enum Proc_mode
 sche_mode(void){
-  if(num_Stride.PASS_MLFQ <= num_Stride.PASS_Stride)
+  if((num_Stride.CPU_share_Stride == 0)||(num_Stride.PASS_MLFQ <= num_Stride.PASS_Stride))
 	return MLFQ;
   else
 	return Stride;
@@ -58,15 +58,15 @@ find_runnable_Stride(void){
 //fun to adjust the current process pass
 void
 adjust_Stride_state(struct proc* p){
-  p->PASS = p->PASS + (10000/(p->CPU_SHARE));
+  p->PASS = p->PASS + (100/(p->CPU_SHARE));
 }
 
 // fun to revaluate Cpu_time schedule_mode used
 void
 revaluate_PASS(enum Proc_mode schedule_mode,struct proc* p){
   int CPU_S = num_Stride.CPU_share_Stride;
-  // if cpu share for stride is 0, and scheduling sys is still run
-  // then there is a gap between cpu share in real-time and intended
+  // if cpu share for stride is 0, and scheduling sys keep running,
+  // then cpu_share_gap between  real-time and intended keep increasing.
   // to prevent it, we should init pass_MLFQ and pass_Stride
   // when cpu_share for stride is 0 
   if(CPU_S == 0){
@@ -75,10 +75,10 @@ revaluate_PASS(enum Proc_mode schedule_mode,struct proc* p){
   }
   // revaluate cpu_time schedule_mode used
   else if(schedule_mode == MLFQ){
-	num_Stride.PASS_MLFQ = num_Stride.PASS_MLFQ + (10000/(100-CPU_S));
+	num_Stride.PASS_MLFQ = num_Stride.PASS_MLFQ + (100/(100-CPU_S));
   }
   else if(schedule_mode == Stride){
-    num_Stride.PASS_Stride = num_Stride.PASS_Stride + (10000/(p->CPU_SHARE));
+    num_Stride.PASS_Stride = num_Stride.PASS_Stride + (100/(p->CPU_SHARE));
   }
 }
 
@@ -114,11 +114,11 @@ find_runnable_MLFQ(){
 				  continue;
 			}
 			else if(lv == MID){
-				if((p->tick)%2 >= (tick%2))
+				if((p->tick)/2 >= (tick/2))
 				  continue;
 			}
 			else if(lv == LOW){
-				if((p->tick)%4 >= (tick%4))
+				if((p->tick)/4 >= (tick/4))
 				  continue;
 			}
 			rp = p;
@@ -161,7 +161,7 @@ init_MLFQ_state(){
         p->MLFQ_lv = HIGH;	
 	  }		
 	}
-  num_MLFQ.total_ticks_MLFQ = 0;
+    num_MLFQ.total_ticks_MLFQ = 0;
 
   }
 }
@@ -404,6 +404,10 @@ exit(void)
 
   if(curproc == initproc)
     panic("init exiting");
+  // 2022-04-07 
+  // revaluate CPU_share_Stride
+  if(curproc -> proc_mode == Stride)
+	num_Stride.CPU_share_Stride = num_Stride.CPU_share_Stride - (curproc -> CPU_SHARE);
   // Close all open files.
   for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd]){
@@ -517,7 +521,7 @@ scheduler(void)
 	  p = find_runnable_Stride();
 	} 
 	else {
-	  p = find_runnable_Stride();
+	  p = find_runnable_MLFQ();
 	} 
 
     // Switch to chosen process.  It is the process's job
@@ -538,11 +542,6 @@ scheduler(void)
 	}
 	else if(schedule_mode == Stride){
 	  adjust_Stride_state(p);
-        // 2022-04-07 
-  // revaluate CPU_share_Stride
-
-    num_Stride.CPU_share_Stride -= (p-> CPU_SHARE);
-
 	}
 
 	revaluate_PASS(schedule_mode,p);
