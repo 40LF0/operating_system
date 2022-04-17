@@ -623,28 +623,14 @@ getlev(void)
 // set current process's cpu share
 int
 set_cpu_share(int i){
-  // logic of checing wheather cpu_share by request is possible 
+  // logic of checking wheather requested cpu_share is possible 
   // is slightly different depending on the mode of process
   if (i <= 0)
     // Error, CPU share for Stride cannnot lower than positive int
 	return -1;
   
-  // current proccess mode is alreadly Stride mode
-  if(myproc()->proc_mode == Stride){
-	if((num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE)) > 80){
-      //Error, CPU share for Stride cannot exceed 80%.
-	  return -1;
-	}
-	else{
-	  // Change INFO about Stride scheduling for the process
-	  myproc()->CPU_SHARE = i;
-	  num_Stride.CPU_share_Stride =  num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE);
-	  myproc()->PASS = num_Stride.PASS_Stride;
-	  return 0;
-	}
-  }
   // current proccess mode is not Stride mode
-  else{
+  if(myproc()->proc_mode != Stride){
 	if(num_Stride.CPU_share_Stride + i > 80){
 	  //Error, CPU share for Stride cannot exceed 80%.	
 	  return -1;
@@ -661,6 +647,20 @@ set_cpu_share(int i){
 	  // to prevent that situation, we should init new proc pass to "stride_scheduler pass" not 0
 	  myproc()->PASS = num_Stride.PASS_Stride;
 	  
+	  return 0;
+	}
+  }
+  // current proccess mode is alreadly Stride mode
+  else{
+	if((num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE)) > 80){
+      //Error, CPU share for Stride cannot exceed 80%.
+	  return -1;
+	}
+	else{
+	  // Change INFO about Stride scheduling for the process
+	  myproc()->CPU_SHARE = i;
+	  num_Stride.CPU_share_Stride =  num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE);
+	  myproc()->PASS = num_Stride.PASS_Stride;
 	  return 0;
 	}
   }
