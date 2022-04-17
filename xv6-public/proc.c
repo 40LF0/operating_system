@@ -79,7 +79,7 @@ revaluate_PASS(enum Proc_mode schedule_mode,struct proc* p){
 	num_Stride.PASS_MLFQ += (10000/(100-CPU_S));
   }
   else if(schedule_mode == Stride){
-    num_Stride.PASS_Stride += (10000/(p->CPU_SHARE));
+    num_Stride.PASS_Stride += (10000/CPU_S);
   }
 }
 
