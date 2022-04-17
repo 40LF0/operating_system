@@ -626,6 +626,7 @@ set_cpu_share(int i){
   // logic of checing wheather cpu_share by request is possible 
   // is slightly different depending on the mode of process
   if (i <= 0)
+    // Error, CPU share for Stride cannnot lower than positive int
 	return -1;
   
   // current proccess mode is alreadly Stride mode
