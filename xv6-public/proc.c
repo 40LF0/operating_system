@@ -61,7 +61,7 @@ adjust_Stride_state(struct proc* p){
   p->PASS += (10000/(p->CPU_SHARE));
 }
 
-// fun to revaluate Cpu_time schedule_mode used
+// fun to revaluate Cpu_time schedule_mode use
 void
 revaluate_PASS(enum Proc_mode schedule_mode,struct proc* p){
   int CPU_S = num_Stride.CPU_share_Stride;
@@ -543,10 +543,11 @@ scheduler(void)
 	}
 	else if(schedule_mode == Stride){
 	  adjust_Stride_state(p);
+	  //Adjust process pass
 	}
 
 	revaluate_PASS(schedule_mode,p);
-      
+    //revaluate Pass(cpu_time) schedule_mode use
 
     // Process is done running for now.
     // It should have changed its p->state before coming back.
@@ -634,10 +635,10 @@ set_cpu_share(int i){
 	  return -1;
 	}
 	else{
-	  // Change INI_ INFO about Stride scheduling for the process
+	  // Change INFO about Stride scheduling for the process
 	  myproc()->CPU_SHARE = i;
 	  num_Stride.CPU_share_Stride =  num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE);
-	 myproc()->PASS = num_Stride.PASS_Stride;
+	  myproc()->PASS = num_Stride.PASS_Stride;
 	  return 0;
 	}
   }
@@ -648,12 +649,17 @@ set_cpu_share(int i){
 	  return -1;
 	}
     else{
-      // Set INI_ INFO about Stride scheduling for the process
+      // Set INFO about Stride scheduling for the process
 	  myproc()->CPU_SHARE = i;
 	  num_Stride.CPU_share_Stride =  num_Stride.CPU_share_Stride + i;
 	  // changing mode with Stride
 	  myproc()->proc_mode = Stride;
+	  // if new stride_proc pass is 0 and if stride scheduling has continued
+	  // then cpu_share_gap between  real-time and intended
+	  // As long as the stride scheduling continues, cpu_share will be larger than intended
+	  // to prevent that situation, we should init new proc pass to "stride_scheduler pass" not 0
 	  myproc()->PASS = num_Stride.PASS_Stride;
+	  
 	  return 0;
 	}
   }
