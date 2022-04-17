@@ -660,7 +660,8 @@ set_cpu_share(int i){
 	  // Change INFO about Stride scheduling for the process
 	  myproc()->CPU_SHARE = i;
 	  num_Stride.CPU_share_Stride =  num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE);
-	  myproc()->PASS = num_Stride.PASS_Stride;
+	  // similar reason to above part (init new proc pass to "stride_scheduler pass")
+	  myproc()->PASS = num_Stride.PASS_Stride; 
 	  return 0;
 	}
   }
