@@ -48,7 +48,7 @@ find_runnable_Stride(void){
     if(p->state == RUNNABLE && p->proc_mode == Stride){
 	  if(p->PASS < min_PASS){
 		rp = p;
-        min_PASS = p-> PASS;	  
+		min_PASS = p-> PASS;	  
 	  }
     }
   }
@@ -58,7 +58,7 @@ find_runnable_Stride(void){
 //fun to adjust the current process pass
 void
 adjust_Stride_state(struct proc* p){
-  p->PASS = p->PASS + (100/(p->CPU_SHARE));
+  p->PASS += (10000/(p->CPU_SHARE));
 }
 
 // fun to revaluate Cpu_time schedule_mode used
@@ -72,13 +72,14 @@ revaluate_PASS(enum Proc_mode schedule_mode,struct proc* p){
   if(CPU_S == 0){
 	num_Stride.PASS_MLFQ = 0;
     num_Stride.PASS_Stride = 0;
+	//num_Stride.PASS_MLFQ = num_Stride.PASS_MLFQ + (100/(100-CPU_S));
   }
   // revaluate cpu_time schedule_mode used
   else if(schedule_mode == MLFQ){
-	num_Stride.PASS_MLFQ = num_Stride.PASS_MLFQ + (100/(100-CPU_S));
+	num_Stride.PASS_MLFQ += (10000/(100-CPU_S));
   }
   else if(schedule_mode == Stride){
-    num_Stride.PASS_Stride = num_Stride.PASS_Stride + (100/(p->CPU_SHARE));
+    num_Stride.PASS_Stride += (10000/(p->CPU_SHARE));
   }
 }
 
@@ -91,7 +92,7 @@ struct {
 struct proc*
 find_runnable_MLFQ(){
   enum MLFQ_level lv= LOW;
-  int tick = 100;
+  int tick = 1000;
   struct proc* p;
   struct proc* rp;
   rp = ptable.proc;
@@ -623,7 +624,9 @@ int
 set_cpu_share(int i){
   // logic of checing wheather cpu_share by request is possible 
   // is slightly different depending on the mode of process
-
+  if (i <= 0)
+	return -1;
+  
   // current proccess mode is alreadly Stride mode
   if(myproc()->proc_mode == Stride){
 	if((num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE)) > 80){
@@ -634,6 +637,7 @@ set_cpu_share(int i){
 	  // Change INI_ INFO about Stride scheduling for the process
 	  myproc()->CPU_SHARE = i;
 	  num_Stride.CPU_share_Stride =  num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE);
+	 myproc()->PASS = num_Stride.PASS_Stride;
 	  return 0;
 	}
   }
@@ -649,6 +653,7 @@ set_cpu_share(int i){
 	  num_Stride.CPU_share_Stride =  num_Stride.CPU_share_Stride + i;
 	  // changing mode with Stride
 	  myproc()->proc_mode = Stride;
+	  myproc()->PASS = num_Stride.PASS_Stride;
 	  return 0;
 	}
   }
