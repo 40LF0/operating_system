@@ -26,6 +26,7 @@ struct num_Stride{
   double PASS_MLFQ;        // used cpu_time for MLFQ scheduling
   double PASS_Stride;      // used cpu_time for Stride scheduling
 } num_Stride;
+int max_stride_proc_pass = 0;
 
 // fun to check what schedule mode is
 enum Proc_mode
@@ -59,6 +60,9 @@ find_runnable_Stride(void){
 void
 adjust_Stride_state(struct proc* p){
   p->PASS += (10000/(p->CPU_SHARE));
+  if(p->PASS > max_stride_proc_pass){
+	max_stride_proc_pass = p-> PASS;
+  }
 }
 
 // fun to revaluate Cpu_time schedule_mode use
@@ -72,7 +76,7 @@ revaluate_PASS(enum Proc_mode schedule_mode,struct proc* p){
   if(CPU_S == 0){
 	num_Stride.PASS_MLFQ = 0;
     num_Stride.PASS_Stride = 0;
-	//num_Stride.PASS_MLFQ = num_Stride.PASS_MLFQ + (100/(100-CPU_S));
+	max_stride_proc_pass = 0;
   }
   // revaluate cpu_time schedule_mode used
   else if(schedule_mode == MLFQ){
@@ -644,8 +648,8 @@ set_cpu_share(int i){
 	  // if new stride_proc pass is 0 and if stride scheduling has continued
 	  // then cpu_share_gap between  real-time and intended
 	  // As long as the stride scheduling continues, cpu_share will be larger than intended
-	  // to prevent that situation, we should init new proc pass to "stride_scheduler pass" not 0
-	  myproc()->PASS = num_Stride.PASS_Stride;
+	  // to prevent that situation, we should init new proc pass to "max_stride_proc_pass" not 0
+	  myproc()->PASS = max_stride_proc_pass;
 	  
 	  return 0;
 	}
@@ -661,7 +665,7 @@ set_cpu_share(int i){
 	  myproc()->CPU_SHARE = i;
 	  num_Stride.CPU_share_Stride =  num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE);
 	  // similar reason to above part (init new proc pass to "stride_scheduler pass")
-	  myproc()->PASS = num_Stride.PASS_Stride; 
+	  myproc()->PASS = max_stride_proc_pass;
 	  return 0;
 	}
   }
