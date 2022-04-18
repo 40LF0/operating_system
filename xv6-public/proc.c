@@ -26,7 +26,7 @@ struct num_Stride{
   double PASS_MLFQ;        // used cpu_time for MLFQ scheduling
   double PASS_Stride;      // used cpu_time for Stride scheduling
 } num_Stride;
-int max_stride_proc_pass = 0;
+int max_stride_proc_pass = 0; //maximum pass in all stride processes
 
 // fun to check what schedule mode is
 enum Proc_mode
