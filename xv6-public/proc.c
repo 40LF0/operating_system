@@ -59,7 +59,9 @@ find_runnable_Stride(void){
 //fun to adjust the current process pass
 void
 adjust_Stride_state(struct proc* p){
-  p->PASS += (10000/(p->CPU_SHARE));
+  // adjust current process pass
+  p->PASS += (10000/(p->CPU_SHARE));  
+  // adjust max_stride_proc_pass
   if(p->PASS > max_stride_proc_pass){
 	max_stride_proc_pass = p-> PASS;
   }
@@ -76,7 +78,8 @@ revaluate_PASS(enum Proc_mode schedule_mode,struct proc* p){
   if(CPU_S == 0){
 	num_Stride.PASS_MLFQ = 0;
     num_Stride.PASS_Stride = 0;
-	max_stride_proc_pass = 0;
+    // max_stride_proc_pass should be 0 when CPU-s = 0.
+    max_stride_proc_pass = 0;
   }
   // revaluate cpu_time schedule_mode used
   else if(schedule_mode == MLFQ){
@@ -664,7 +667,7 @@ set_cpu_share(int i){
 	  // Change INFO about Stride scheduling for the process
 	  myproc()->CPU_SHARE = i;
 	  num_Stride.CPU_share_Stride =  num_Stride.CPU_share_Stride + i - (myproc()->CPU_SHARE);
-	  // similar reason to above part (init new proc pass to "stride_scheduler pass")
+	  // similar reason to above part (init new proc pass to "max_stride_proc_pass")
 	  myproc()->PASS = max_stride_proc_pass;
 	  return 0;
 	}
