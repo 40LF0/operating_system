@@ -66,6 +66,10 @@ struct proc {
   enum Proc_mode proc_mode;    // proc  mode wheather MLFQ or Stride
   int CPU_SHARE;			   // CPU share for stride scheduling
   double PASS;				   // cpu time the proc use in stride mode
+/// 2022.05.14 adding thread state 
+  int isthread;                // 1 is true, 0 is false.
+  void *ret_val;               // return value by tread.
+
 };
 
 // Process memory is laid out contiguously, low addresses first:

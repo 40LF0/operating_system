@@ -254,6 +254,8 @@ found:
   p-> proc_mode = MLFQ;
   p-> CPU_SHARE = 0;
   p-> PASS = 0;
+  /// 2022.05.14 init thread state
+  p-> isthread = 0;
 
 
 
@@ -537,6 +539,7 @@ scheduler(void)
     // before jumping back to us.
     c->proc = p;
     switchuvm(p);
+    //cprintf("swith to %d",p->pid);
     p->state = RUNNING;
 	swtch(&(c->scheduler), p->context);	
     switchkvm();
@@ -671,6 +674,182 @@ set_cpu_share(int i){
 	  myproc()->PASS = max_stride_proc_pass;
 	  return 0;
 	}
+  }
+
+}
+//2022-05-12
+//implement Basic LWP Operation - Create,Join, and Exit
+
+//thread_create is syscall
+//method to create threads within the process.
+//From that point on, the execution routine assigned to each thread starts.
+int
+thread_create(thread_t * thread,void * (*start_routine)(void *),void *arg)
+{ cprintf("%dcreate\n",&thread);
+  uint sp, i;//,ustack[3+MAXARG+1];
+  pde_t *pgdir;
+  struct proc *np;
+  struct proc *curproc = myproc();
+
+  // Allocate process for thread.
+  if((np= allocproc()) == 0)
+    goto bad;
+
+
+
+  //# This part is modified code of exec function
+  // Allocate two pages at the next page boundary.
+  // Make  the user stack.
+  np->pgdir = curproc->pgdir;
+  pgdir = curproc -> pgdir;
+  if((curproc->sz = allocuvm(pgdir, curproc->sz, curproc->sz + 2*PGSIZE)) == 0)
+    goto bad;
+  clearpteu(np->pgdir, (char*)(curproc->sz - 2*PGSIZE));
+ 
+
+
+  // Push argument.
+  np->sz = curproc->sz;
+  sp = np->sz;
+  sp -= 4;
+  *(uint*)sp = (uint)arg;
+  
+  np->pgdir = curproc->pgdir;
+  *np->tf = *curproc->tf; 
+
+
+  // insert info about it's userstackpointer and start_routine to thread
+  np->tf->esp = sp;
+  np->tf->eip = (uint)start_routine;
+
+
+  // init thread id  
+  *thread = np->pid;
+
+
+  // init thread state
+  np -> isthread = 1;
+  np -> ret_val = 0;
+  //copy parent's file descriptor
+  for(i = 0; i < NOFILE; i++) 
+    if(curproc->ofile[i])
+      np->ofile[i] = filedup(curproc->ofile[i]);
+  np->cwd = idup(curproc->cwd);
+
+  
+  safestrcpy(np->name, curproc->name,sizeof(curproc->name));
+  pushcli();
+  lcr3(V2P(np->pgdir));
+  popcli();
+
+  acquire(&ptable.lock);
+
+  np->state = RUNNABLE;
+
+  release(&ptable.lock);
+  cprintf("[Create] DONE! pid : %d parent ; %d\n",np->pid,np->parent->pid);
+  return 0;
+
+ bad:
+  return -1;
+
+}
+
+//thread_exit is syscall
+//method to terminate the thread in it.
+//we call thread_exit fun at the end of a thread routine.
+void
+thread_exit(void *retval){
+  cprintf("entry exit");
+  struct proc *curproc = myproc();
+  struct proc *p;
+
+  if(curproc == initproc)
+    panic("init exiting");
+  // 2022-04-07 
+  // revaluate CPU_share_Stride
+
+  curproc->cwd = 0;
+
+  acquire(&ptable.lock);
+
+  // Parent might be sleeping in wait().
+  wakeup1(curproc->parent);
+
+  // Pass abandoned children to parent.
+  //# We have to modify this part when we consider interaction with syscall.
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->parent == curproc){
+	  p->parent = curproc->parent;
+	  if(p->state == ZOMBIE)
+		wakeup1(curproc->parent);
+    }
+  }
+  //#
+  // Jump into the scheduler, never to return.
+  curproc->state = ZOMBIE;
+  curproc->ret_val = retval;
+
+  sched();
+  panic("zombie exit");
+} 
+
+//thread_join is syscall
+//method to wait for the thread specified by the argument to terminate.
+//If that thread has already terminated, then this returns immediately.
+//In this process, we have to clean up the resources including page_table,
+//allocated memories and stacks.
+int
+thread_join(thread_t thread, void **retval){
+  //cprintf("entr join\n");
+  struct proc *p;
+  int havekids;
+  uint sz;
+  struct proc *curproc = myproc();
+
+  acquire(&ptable.lock);
+  for(;;){
+    // Scan through table looking for exited children.
+    havekids = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+	  //cprintf("entr join for \n");
+      if(p->parent != curproc || p->pid != (int)thread)
+        continue;
+      havekids = 1;
+      if(p->state == ZOMBIE){
+        // Found one.
+        *retval = p->ret_val;
+        kfree(p->kstack);
+        p->kstack = 0;
+        sz = p->tf->esp;
+        deallocuvm(p->pgdir,sz + 2*PGSIZE,sz);
+        sz = PGROUNDDOWN(sz);
+        deallocuvm(p->pgdir,sz + 2*PGSIZE,sz);
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        p->state = UNUSED;
+		p->tick = 0;
+	    p->MLFQ_lv = HIGH;
+		p->proc_mode = MLFQ;
+		p->CPU_SHARE = 0;
+		p->PASS = 0;
+		p->isthread = 0;
+		p->ret_val = 0;
+        release(&ptable.lock);
+        return 0;
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || curproc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+    sleep(curproc, &ptable.lock);  //DOC: wait-sleep
   }
 
 }

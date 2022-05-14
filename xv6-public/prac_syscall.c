@@ -64,8 +64,55 @@ sys_set_cpu_share(void){
   return set_cpu_share(num);
 
 }
+// 2022-05-14 wrapper fun for syscall thread_join
+int
+sys_thread_create(void)
+{
+  thread_t *thread;
+  void*(*start_routine)(void*);
+  void *arg;
 
+  if(argptr(0,(char**)&thread, sizeof thread) <0)
+	return -1;
+  if(argptr(1,(char**)&start_routine, sizeof start_routine) <0)
+	return -1;
+  if(argptr(2,(char**)&arg, sizeof arg) <0)
+	return -1;
+  int re;
+  re = thread_create(thread,start_routine,arg);
+  cprintf("create su\n");
+  return re;
 
+}
+
+// 2022-05-14 wrapper fun for syscall thread_exit
+int
+sys_thread_exit(void)
+{
+  void *retval;
+  if(argptr(0,(char**)&retval, sizeof retval) <0)
+	return -1;
+  thread_exit(retval);
+  return 0;
+}
+
+// 2022-05-14 wrapper fun for syscall thread_join
+int
+sys_thread_join(void)
+{
+  int thread;
+  void **retval;
+
+  if(argint(0,&thread) <0) 
+    return -1; 
+  if(argptr(1,(char**)&retval, sizeof retval) <0) 
+    return -1; 
+  int re;
+  re = thread_join((thread_t)thread,retval);
+  cprintf("join su\n");
+  return re;
+
+}
 
 
 int

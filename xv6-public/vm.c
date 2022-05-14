@@ -249,8 +249,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
 }
 
 // Deallocate user pages to bring the process size from oldsz to
-// newsz.  oldsz and newsz need not be page-aligned, nor does newsz
-// need to be less than oldsz.  oldsz can be larger than the actual
+// newsz.  oldsz and newsz need not be page-aligned, nor does news// need to be less than oldsz.  oldsz can be larger than the actual
 // process size.  Returns the new process size.
 int
 deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
