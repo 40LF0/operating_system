@@ -763,9 +763,7 @@ thread_create(thread_t * thread,void * (*start_routine)(void *),void *arg)
   np->cwd = idup(curproc->cwd);
   
   safestrcpy(np->name, curproc->name,sizeof(curproc->name));
-  pushcli();
-  lcr3(V2P(np->pgdir));
-  popcli();
+
 
   acquire(&ptable.lock);
 
