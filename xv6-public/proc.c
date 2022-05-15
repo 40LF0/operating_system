@@ -255,6 +255,7 @@ found:
   p-> CPU_SHARE = 0;
   p-> PASS = 0;
   /// 2022.05.14 init thread state
+  p-> hasthread = 0;
   p-> isthread = 0;
 
 
@@ -685,57 +686,81 @@ set_cpu_share(int i){
 //From that point on, the execution routine assigned to each thread starts.
 int
 thread_create(thread_t * thread,void * (*start_routine)(void *),void *arg)
-{ cprintf("%dcreate\n",&thread);
-  uint sp, i;//,ustack[3+MAXARG+1];
+{ //cprintf("%dcreate\n",&thread);
+  uint sz,sp,i,ustack[4];
   pde_t *pgdir;
   struct proc *np;
   struct proc *curproc = myproc();
 
+  if(curproc->hasthread == 0){
+	for(i = 0;i < NTHREAD ;i++){
+	  curproc->sz_thread[i] = 0;
+	  curproc->ex_thread[i] = 0;
+    } 
+    curproc->hasthread =1;
+  }
+
+
   // Allocate process for thread.
   if((np= allocproc()) == 0)
     goto bad;
-
-
-
-  //# This part is modified code of exec function
-  // Allocate two pages at the next page boundary.
-  // Make  the user stack.
+  // Share memoryspace(pgdir) with parent
   np->pgdir = curproc->pgdir;
   pgdir = curproc -> pgdir;
-  if((curproc->sz = allocuvm(pgdir, curproc->sz, curproc->sz + 2*PGSIZE)) == 0)
-    goto bad;
-  clearpteu(np->pgdir, (char*)(curproc->sz - 2*PGSIZE));
- 
-
+  // Allocate two pages at the next page boundary.
+  // Make  the user stack.
+  for(i = 0;i < NTHREAD ;i++){
+	if(curproc->ex_thread[i] == 0){
+		if(curproc->sz_thread[i] == 0){
+		  if(i==0){
+			sz = curproc-> sz;
+                  }
+		  else{
+			sz = curproc->sz_thread[i-1];
+		  }
+		  acquire(&ptable.lock);
+		  if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
+			goto bad;
+		  release(&ptable.lock);
+		  curproc->sz_thread[i] = sz;
+		}
+      np->sz =  curproc->sz_thread[i];
+      curproc->ex_thread[i] = 1;
+      np-> thread_num = i;
+      break;
+    }
+  }
+  *np->tf = *curproc->tf; 
+  sp = np->sz;  
+  
 
   // Push argument.
-  np->sz = curproc->sz;
-  sp = np->sz;
-  sp -= 4;
-  *(uint*)sp = (uint)arg;
-  
-  np->pgdir = curproc->pgdir;
-  *np->tf = *curproc->tf; 
-
+  ustack[3]=(uint)arg; 
+  ustack[2]=0;
+  ustack[1]=(uint)ustack[3];
+  ustack[0]=0xffffffff;
+	
+  sp-=16;
+  if(copyout(np->pgdir,sp,ustack,16)<0)
+    goto bad;
 
   // insert info about it's userstackpointer and start_routine to thread
   np->tf->esp = sp;
   np->tf->eip = (uint)start_routine;
-
+  np->tf->eax=0;
 
   // init thread id  
   *thread = np->pid;
 
-
   // init thread state
   np -> isthread = 1;
   np -> ret_val = 0;
+  np->parent=curproc;
   //copy parent's file descriptor
   for(i = 0; i < NOFILE; i++) 
     if(curproc->ofile[i])
       np->ofile[i] = filedup(curproc->ofile[i]);
   np->cwd = idup(curproc->cwd);
-
   
   safestrcpy(np->name, curproc->name,sizeof(curproc->name));
   pushcli();
@@ -747,7 +772,7 @@ thread_create(thread_t * thread,void * (*start_routine)(void *),void *arg)
   np->state = RUNNABLE;
 
   release(&ptable.lock);
-  cprintf("[Create] DONE! pid : %d parent ; %d\n",np->pid,np->parent->pid);
+  //cprintf("[Create] DONE! pid : %d parent ; %d\n",np->pid,np->parent->pid);
   return 0;
 
  bad:
@@ -760,14 +785,16 @@ thread_create(thread_t * thread,void * (*start_routine)(void *),void *arg)
 //we call thread_exit fun at the end of a thread routine.
 void
 thread_exit(void *retval){
-  cprintf("entry exit");
+  //cprintf("entry exit");
   struct proc *curproc = myproc();
   struct proc *p;
 
   if(curproc == initproc)
     panic("init exiting");
-  // 2022-04-07 
-  // revaluate CPU_share_Stride
+
+  begin_op();
+  iput(curproc->cwd);
+  end_op();
 
   curproc->cwd = 0;
 
@@ -776,13 +803,13 @@ thread_exit(void *retval){
   // Parent might be sleeping in wait().
   wakeup1(curproc->parent);
 
-  // Pass abandoned children to parent.
+  // Pass abandoned children to init.
   //# We have to modify this part when we consider interaction with syscall.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){
-	  p->parent = curproc->parent;
+	  p->parent = initproc;
 	  if(p->state == ZOMBIE)
-		wakeup1(curproc->parent);
+		wakeup1(initproc);
     }
   }
   //#
@@ -803,51 +830,39 @@ int
 thread_join(thread_t thread, void **retval){
   //cprintf("entr join\n");
   struct proc *p;
-  int havekids;
-  uint sz;
   struct proc *curproc = myproc();
 
   acquire(&ptable.lock);
   for(;;){
     // Scan through table looking for exited children.
-    havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
 	  //cprintf("entr join for \n");
       if(p->parent != curproc || p->pid != (int)thread)
         continue;
-      havekids = 1;
       if(p->state == ZOMBIE){
         // Found one.
         *retval = p->ret_val;
         kfree(p->kstack);
         p->kstack = 0;
-        sz = p->tf->esp;
-        deallocuvm(p->pgdir,sz + 2*PGSIZE,sz);
-        sz = PGROUNDDOWN(sz);
-        deallocuvm(p->pgdir,sz + 2*PGSIZE,sz);
+        p->sz = curproc->sz;
+	curproc->ex_thread[p->thread_num]=0;
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
-		p->tick = 0;
-	    p->MLFQ_lv = HIGH;
-		p->proc_mode = MLFQ;
-		p->CPU_SHARE = 0;
-		p->PASS = 0;
-		p->isthread = 0;
-		p->ret_val = 0;
+        p->tick = 0;
+        p->MLFQ_lv = HIGH;
+        p->proc_mode = MLFQ;
+        p->CPU_SHARE = 0;
+        p->PASS = 0;
+        p->ret_val = 0;
+	p->thread_num = -1;
+	p->isthread = 0;
         release(&ptable.lock);
         return 0;
       }
     }
-
-    // No point waiting if we don't have any children.
-    if(!havekids || curproc->killed){
-      release(&ptable.lock);
-      return -1;
-    }
-
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(curproc, &ptable.lock);  //DOC: wait-sleep
   }

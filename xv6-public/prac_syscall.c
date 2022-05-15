@@ -80,7 +80,7 @@ sys_thread_create(void)
 	return -1;
   int re;
   re = thread_create(thread,start_routine,arg);
-  cprintf("create su\n");
+  //cprintf("create su\n");
   return re;
 
 }
@@ -109,7 +109,7 @@ sys_thread_join(void)
     return -1; 
   int re;
   re = thread_join((thread_t)thread,retval);
-  cprintf("join su\n");
+  //cprintf("join su\n");
   return re;
 
 }

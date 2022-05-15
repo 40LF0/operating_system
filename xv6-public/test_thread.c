@@ -2,7 +2,7 @@
 #include "stat.h"
 #include "user.h"
 
-#define NUM_THREAD 1
+#define NUM_THREAD 10
 #define NTEST 5
 
 // Show race condition
@@ -31,7 +31,7 @@ char *testname[NTEST] = {
   "basictest",
   "jointest1",
   "jointest2",
-  "stresstest",
+   "stresstest",
 };
 
 int
@@ -85,7 +85,7 @@ void nop(){ }
 void*
 racingthreadmain(void *arg)
 {
-  printf(1,"racingmain entry\n");
+  //printf(1,"racingmain entry\n");
   int tid = (int) arg;
   int i;
   //int j;

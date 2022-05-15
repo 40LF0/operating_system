@@ -66,6 +66,13 @@ struct proc {
   enum Proc_mode proc_mode;    // proc  mode wheather MLFQ or Stride
   int CPU_SHARE;			   // CPU share for stride scheduling
   double PASS;				   // cpu time the proc use in stride mode
+/// 2022.05.15 info about childthread for mother process
+  uint sz_thread[NTHREAD];       // info about kstack_location
+  uint ex_thread[NTHREAD];       // info about cthread exit (1 exit,0 not)
+  int hasthread;                 // 1 is true, 0 is false
+  int thread_num;               // thread_num for motherprocess
+
+
 /// 2022.05.14 adding thread state 
   int isthread;                // 1 is true, 0 is false.
   void *ret_val;               // return value by tread.
