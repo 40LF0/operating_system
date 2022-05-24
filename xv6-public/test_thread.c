@@ -16,7 +16,7 @@ int jointest2(void);
 // Test whether a process can reuse the thread stack
 int stresstest(void);
 
-int gcnt;
+volatile int gcnt;
 int gpipe[2];
 
 int (*testfunc[NTEST])(void) = {
@@ -31,7 +31,7 @@ char *testname[NTEST] = {
   "basictest",
   "jointest1",
   "jointest2",
-   "stresstest",
+  "stresstest",
 };
 
 int
@@ -85,7 +85,6 @@ void nop(){ }
 void*
 racingthreadmain(void *arg)
 {
-  //printf(1,"racingmain entry\n");
   int tid = (int) arg;
   int i;
   //int j;
@@ -93,10 +92,11 @@ racingthreadmain(void *arg)
   for (i = 0; i < 10000000; i++){
     tmp = gcnt;
     tmp++;
-    nop();
+	asm volatile("call %P0"::"i"(nop));
     gcnt = tmp;
   }
   thread_exit((void *)(tid+1));
+
   return 0;
 }
 
@@ -114,7 +114,6 @@ racingtest(void)
       return -1;
     }
   }
-  printf(1,"wait\n");
   for (i = 0; i < NUM_THREAD; i++){
     if (thread_join(threads[i], &retval) != 0 || (int)retval != i+1){
       printf(1, "panic at thread_join\n");
@@ -137,6 +136,7 @@ basicthreadmain(void *arg)
     }
   }
   thread_exit((void *)(tid+1));
+
   return 0;
 }
 
@@ -172,6 +172,7 @@ jointhreadmain(void *arg)
   sleep(200);
   printf(1, "thread_exit...\n");
   thread_exit((void *)(val*2));
+
   return 0;
 }
 
@@ -230,6 +231,7 @@ void*
 stressthreadmain(void *arg)
 {
   thread_exit(0);
+
   return 0;
 }
 

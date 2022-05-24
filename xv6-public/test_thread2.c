@@ -3,7 +3,7 @@
 #include "user.h"
 
 #define NUM_THREAD 10
-#define NTEST 14
+#define NTEST 13
 
 // Show race condition
 int racingtest(void);
@@ -49,7 +49,7 @@ int (*testfunc[NTEST])(void) = {
   basictest,
   jointest1,
   jointest2,
-  stresstest,
+  //stresstest,
   exittest1,
   exittest2,
   forktest,
@@ -65,7 +65,7 @@ char *testname[NTEST] = {
   "basictest",
   "jointest1",
   "jointest2",
-  "stresstest",
+  //"stresstest",
   "exittest1",
   "exittest2",
   "forktest",
@@ -155,7 +155,6 @@ racingtest(void)
       printf(1, "panic at thread_create\n");
       return -1;
     }
-	printf(1, "%d thread_create_s\n",i);
   }
   for (i = 0; i < NUM_THREAD; i++){
     if (thread_join(threads[i], &retval) != 0 || (int)retval != i+1){
@@ -281,7 +280,7 @@ stressthreadmain(void *arg)
 int
 stresstest(void)
 {
-  const int nstress = 5000; //35000 default
+  const int nstress = 35000;
   thread_t threads[NUM_THREAD];
   int i, n;
   void *retval;
@@ -410,7 +409,6 @@ execthreadmain(void *arg)
 {
   char *args[3] = {"echo", "echo is executed!", 0}; 
   sleep(1);
-  printf(1,"exec_s\n");
   exec("echo", args);
 
   printf(1, "panic at execthreadmain\n");
@@ -449,10 +447,7 @@ sbrkthreadmain(void *arg)
   char *oldbrk;
   char *end;
   char *c;
-  //printf(1,"sbrk_s\n");
   oldbrk = sbrk(1000);
-  //printf(1,"sbrk_f\n");
-
   end = oldbrk + 1000;
   for (c = oldbrk; c < end; c++){
     *c = tid+1;
@@ -460,11 +455,10 @@ sbrkthreadmain(void *arg)
   sleep(1);
   for (c = oldbrk; c < end; c++){
     if (*c != tid+1){
-      printf(1, "panic at main %d\n",tid);
+      printf(1, "panic at sbrkthreadmain\n");
       exit();
     }
   }
-  printf(1, "success  %d\n",tid);
   thread_exit(0);
 
   return 0;
@@ -489,7 +483,7 @@ sbrktest(void)
       return -1;
     }
   }
-  
+
   return 0;
 }
 

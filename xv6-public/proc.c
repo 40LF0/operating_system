@@ -348,7 +348,9 @@ find_runnable_MLFQ(){
 		  }
 	}     
   }
- 
+  //if(rp == ptable.proc && tick == 1000){
+  //	panic("can't find mlfq\n");
+  //}
   return rp;
 }
 // Adjust MLFQ state incluing incresing tick, changing lv of MLFQ
@@ -1203,7 +1205,7 @@ thread_join(thread_t thread, void **retval){
       if(p->state == ZOMBIE){
         // Found one.
         *retval = p->ret_val;
-        //kfree(p->kstack);
+        kfree(p->kstack);
         p->kstack = 0;
         p->sz = curproc->sz;
 	    curproc->ex_thread[p->thread_num]=0;
