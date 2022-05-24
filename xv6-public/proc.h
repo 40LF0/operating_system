@@ -70,12 +70,24 @@ struct proc {
   uint sz_thread[NTHREAD];       // info about kstack_location
   uint ex_thread[NTHREAD];       // info about cthread exit (1 exit,0 not)
   int hasthread;                 // 1 is true, 0 is false
-  int thread_num;               // thread_num for motherprocess
-
+  int thread_num;                // thread_index
 
 /// 2022.05.14 adding thread state 
   int isthread;                // 1 is true, 0 is false.
   void *ret_val;               // return value by tread.
+  int exiting;				   // 1 is true, 0 is false.
+
+// 2022.05.23 adding more info about threads
+  struct proc *mother;         // mother process for thread
+  int CPU_share_Stride; // Sum of cpu_share of each stride_mode thread
+  double PASS_MLFQ;        // used cpu_time for MLFQ scheduling thread
+  double PASS_Stride;      // used cpu_time for Stride scheduling thread
+  int max_stride_thread_pass; //maximum pass in all stride threads
+  int total_ticks_MLFQ;
+  int CPU_S;
+  int m_tick;                 // mother's tick
+  enum MLFQ_level m_MLFQ_lv;     // Process MLFQ level
+
 
 };
 

@@ -19,6 +19,15 @@ exec(char *path, char **argv)
   pde_t *pgdir, *oldpgdir;
   struct proc *curproc = myproc();
 
+  int islwpgroup = 0;
+
+  if(curproc->isthread == 1){
+	islwpgroup = 1;
+    kill_lwpgroup(curproc->mother->pid,curproc);
+  }
+  
+
+
   begin_op();
 
   if((ip = namei(path)) == 0){
@@ -27,6 +36,7 @@ exec(char *path, char **argv)
     return -1;
   }
   ilock(ip);
+
   pgdir = 0;
 
   // Check ELF header
@@ -92,6 +102,7 @@ exec(char *path, char **argv)
     if(*s == '/')
       last = s+1;
   safestrcpy(curproc->name, last, sizeof(curproc->name));
+ 
 
   // Commit to the user image.
   oldpgdir = curproc->pgdir;
@@ -100,7 +111,8 @@ exec(char *path, char **argv)
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
   switchuvm(curproc);
-  freevm(oldpgdir);
+  if(islwpgroup == 0)
+    freevm(oldpgdir);
   return 0;
 
  bad:

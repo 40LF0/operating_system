@@ -47,10 +47,15 @@ sys_sbrk(void)
 {
   int addr;
   int n;
+  
 
   if(argint(0, &n) < 0)
     return -1;
   addr = myproc()->sz;
+  if(myproc()->isthread ==1){
+	myproc()->sz = myproc()->sz + n;
+	return addr;
+  }
   if(growproc(n) < 0)
     return -1;
   return addr;

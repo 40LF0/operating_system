@@ -403,6 +403,11 @@ sys_exec(void)
   if(argstr(0, &path) < 0 || argint(1, (int*)&uargv) < 0){
     return -1;
   }
+  // 2022-05-22
+  if(myproc()->hasthread == 1 || myproc()->isthread == 1){
+	//lwp group should be eliminated
+  }
+  //
   memset(argv, 0, sizeof(argv));
   for(i=0;; i++){
     if(i >= NELEM(argv))

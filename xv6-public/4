@@ -37,220 +37,6 @@ sche_mode(void){
 	return Stride;
 }
 
-struct proc*
-find_runnable_thread(struct proc* mother){
-  enum Proc_mode schedule_mode = MLFQ;
-  enum MLFQ_level lv= LOW;
-  int tick = 1000;
-  struct proc* p;
-  struct proc* rp = mother;
-  int min_PASS = 2147483645;
-  // choose sched_mode 
-  if(mother->CPU_share_Stride == 0 || mother->PASS_MLFQ <= mother->PASS_Stride){
-    schedule_mode = MLFQ;
-  }
-  else{
-    schedule_mode = Stride;
-  }
-  // find thread depends on choosen mode
-  if(schedule_mode == MLFQ){    
-      //find_runnable_MLFQ();
-      // Find the process which is runnable by MLFQ Policy
-        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-		  if( p->state == RUNNABLE && p->proc_mode == MLFQ && p->isthread == 1 &&p->mother == mother){
-          //The scheduler chooses the next process that’s ready from the MLFQ. 
-          //If any process is found in the higher priority queue, 
-          //a process in the lower queue cannot be selected 
-          //until the upper level queue becomes empty.
-            if(p->MLFQ_lv > lv){
-              rp = p;
-              lv = p->MLFQ_lv;
-              tick = p->tick;
-            }
-            else if(p->MLFQ_lv == lv){
-          ///Each level adopts the Round Robin policy 
-          ///with a different time quantum.
-              if(lv == HIGH){
-                  if((p->tick/5) >= (tick/5))
-                    continue;
-              }
-              else if(lv == MID){
-                  if((p->tick)/10 >= (tick/10))
-                    continue;
-              }
-              else if(lv == LOW){
-                  if((p->tick)/20 >= (tick/20))
-                    continue;
-              }
-              rp = p;
-              tick = p->tick;
-			  
-            }
-          } 
-          if( p->state == RUNNABLE && p == mother){
-          //The scheduler chooses the next process that’s ready from the MLFQ. 
-          //If any process is found in the higher priority queue, 
-          //a process in the lower queue cannot be selected 
-          //until the upper level queue becomes empty.
-            if(p->m_MLFQ_lv > lv){
-              rp = p;
-              lv = p->m_MLFQ_lv;
-              tick = p->m_tick;
-            }
-            else if(p->m_MLFQ_lv == lv){
-          ///Each level adopts the Round Robin policy 
-          ///with a different time quantum.
-              if(lv == HIGH){
-                  if((p->m_tick/5) >= (tick/5))
-                    continue;
-              }
-              else if(lv == MID){
-                  if((p->m_tick)/10 >= (tick/10))
-                    continue;
-              }
-              else if(lv == LOW){
-                  if((p->m_tick)/20 >= (tick/20))
-                    continue;
-              }
-              rp = p;
-              tick = p->m_tick;
-            }
-          } 
-
-
-    }
-  }    
-  else if(schedule_mode == Stride){
-      //p = find_runnable_Stride();
-	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state == RUNNABLE && p->proc_mode == Stride && p->isthread == 1 && p->mother == mother){
-        if(p->PASS < min_PASS){
-          rp = p;
-          min_PASS = p-> PASS;
-        }
-      }
-    }
-  }    
-  
-  return rp;  
-}
-
-void
-adjust_thread_state(struct proc* thread){
-    struct proc *p;
-    struct proc *mother =0;
-
-    if(thread ->hasthread == 1){
-	  mother = thread;
-      //adjust_MLFQ_state(p);
-      // Adjust MLFQ state incluing incresing tick, changing lv of MLFQ
-	  thread->m_tick++;
-	  thread->total_ticks_MLFQ++;
-	  //Each queue has a different time allotment.
-	  if(thread->m_MLFQ_lv == HIGH && thread->m_tick >= 20){
-	    thread->m_MLFQ_lv = MID;
-	    thread->m_tick = 0;
-		// for debug
-	    //cprintf("adjust-h %d\n",p->pid); 
-	  }
-	  else if(thread->m_MLFQ_lv == MID && thread->m_tick >= 40){
-	    thread->m_MLFQ_lv = LOW;
-        thread->m_tick = 0;
-        // for debug
-        //cprintf("adjust-m %d\n",p->pid); 
-	  } 
-      //init_MLFQ_state();
-      // priority boosting
-      if(thread->total_ticks_MLFQ >= 100){
-		for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-		  if(p->state == RUNNABLE && p->proc_mode == MLFQ && p->isthread == 1  && p->mother == mother){
-			p->tick = 0;
-			p->MLFQ_lv = HIGH;
-		  }
-          if(p->state == RUNNABLE || p == thread){
-			p->m_tick = 0;             
-			p->m_MLFQ_lv = HIGH;
-		  }
-		}
-		thread->total_ticks_MLFQ = 0;
-	  }
-
-
-    }
-    else if(thread->proc_mode == MLFQ){
-	  mother = thread->mother;
-      //adjust_MLFQ_state(p);
-      // Adjust MLFQ state incluing incresing tick, changing lv of MLFQ
-      thread->tick++;
-      thread->mother->total_ticks_MLFQ++;
-      //Each queue has a different time allotment.
-      if(thread->MLFQ_lv == HIGH && thread->tick >= 20){ 
-        thread->MLFQ_lv = MID; 
-        thread->tick = 0; 
-        // for debug
-        //cprintf("adjust-h %d\n",p->pid); 
-      }    
-      else if(thread->MLFQ_lv == MID && thread->tick >= 40){ 
-        thread->MLFQ_lv = LOW; 
-        thread->tick = 0; 
-        // for debug
-        //cprintf("adjust-m %d\n",p->pid); 
-      }    
-      //init_MLFQ_state();
-      // priority boosting
-      if(thread->mother->total_ticks_MLFQ >= 100){
-        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-          if(p->state == RUNNABLE && p->proc_mode == MLFQ && p->isthread == 1 && p->mother == mother){
-            p->tick = 0; 
-            p->MLFQ_lv = HIGH;
-          }
-          if(p->state == RUNNABLE || p == thread->mother){
-            p->m_tick = 0;     
-            p->m_MLFQ_lv = HIGH;
-		  }
-        }    
-        thread->mother->total_ticks_MLFQ = 0; 
-      }  
-
-	  
-    }
-    else if(thread->proc_mode  == Stride){
-	  mother = thread -> mother;
-      //adjust_Stride_state(p);
-      //Adjust process pass
-	  // adjust current process pass
-	  thread->PASS += (10000/(thread->CPU_SHARE));
-	  // adjust max_stride_proc_pass
-	  if(thread->PASS > thread->mother->max_stride_thread_pass){
-		thread->mother->max_stride_thread_pass = thread-> PASS;
-	  }
-
-    }
-
-  //revaluate_PASS(schedule_mode,p);
-  
-  int CPU_S = mother->CPU_S;
-  // if cpu share for stride is 0, and scheduling sys keep running,
-  // then cpu_share_gap between  real-time and intended keep increasing.
-  // to prevent it, we should init pass_MLFQ and pass_Stride
-  // when cpu_share for stride is 0 
-  if(CPU_S == 0){
-    mother->PASS_MLFQ = 0;
-    mother->PASS_Stride = 0;
-    // max_stride_proc_pass should be 0 when CPU-s = 0.
-    mother->max_stride_thread_pass = 0;
-  }
-  // revaluate cpu_time schedule_mode used
-  else if(thread == mother|| thread->proc_mode == MLFQ){
-    mother->PASS_MLFQ += (10000/(mother->CPU_SHARE-CPU_S));
-  }
-  else if(thread->proc_mode == Stride){
-    mother->PASS_Stride += (10000/CPU_S);
-  }
-
-
-}
-
 //Find the process which is runnable by Stride Policy
 struct proc*
 find_runnable_Stride(void){
@@ -260,7 +46,7 @@ find_runnable_Stride(void){
   rp = &ptable.proc[0];
   // choose the process with the least pass
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if((p->state == RUNNABLE ) && p->proc_mode == Stride ){
+    if(p->state == RUNNABLE && p->proc_mode == Stride){
 	  if(p->PASS < min_PASS){
 		rp = p;
 		min_PASS = p-> PASS;	  
@@ -318,7 +104,7 @@ find_runnable_MLFQ(){
   struct proc* rp;
   rp = ptable.proc;
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-	if( (p->state == RUNNABLE) && p->proc_mode == MLFQ){
+	if(p->state == RUNNABLE && p->proc_mode == MLFQ){
 	      //The scheduler chooses the next process that’s ready from the MLFQ. 
 	      //If any process is found in the higher priority queue, 
 	      //a process in the lower queue cannot be selected 
@@ -472,15 +258,6 @@ found:
   p-> hasthread = 0;
   p-> isthread = 0;
   p-> exiting = 0;
-
-  p->CPU_share_Stride = 0;
-  p-> PASS_MLFQ = 0;
-  p-> PASS_Stride = 0;
-  p-> max_stride_thread_pass = 0;
-  p-> total_ticks_MLFQ = 0;
-  p->CPU_S = 0;
-  p->m_tick = 0;
-  p->m_MLFQ_lv = HIGH;
 
 
 
@@ -877,11 +654,7 @@ scheduler(void)
 	else {
 	  p = find_runnable_MLFQ();
 	} 
-    
-    // If lwpgroup is choosen, 
-	//find the thread which is runnable by the policy
 
-    
     // Switch to chosen process.  It is the process's job
     // to release ptable.lock and then reacquire it
     // before jumping back to us.
@@ -891,8 +664,6 @@ scheduler(void)
     p->state = RUNNING;
 	swtch(&(c->scheduler), p->context);	
     switchkvm();
-    
-
 
 	if(schedule_mode == MLFQ){
       ///2022-04-01///////////////////
@@ -1067,13 +838,12 @@ thread_create(thread_t * thread,void * (*start_routine)(void *),void *arg)
                   }
 		  else{
 			sz = curproc->sz_thread[i-1];
-			sz += PGSIZE;
-		  } 
+		  }
+		  sz = sz + PGSIZE; 
 		  acquire(&ptable.lock);
-		  if((sz = allocuvm(pgdir, sz, sz + 3*PGSIZE)) == 0)
+		  if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
 			goto bad;
 		  release(&ptable.lock);	
-		  sz = sz - PGSIZE;
 		  curproc->sz_thread[i] = sz;
 		}
       np->sz =  curproc->sz_thread[i];
@@ -1109,9 +879,8 @@ thread_create(thread_t * thread,void * (*start_routine)(void *),void *arg)
   np -> isthread = 1;
   np -> ret_val = 0;
   np->parent=curproc;
-  if(curproc->hasthread == 1){
-	np->mother = curproc;	
-    //cprintf("//\n");
+  if(np->hasthread == 1){
+	np->mother = curproc;
   }
   else{
 	np->mother = curproc->mother;
@@ -1203,7 +972,7 @@ thread_join(thread_t thread, void **retval){
       if(p->state == ZOMBIE){
         // Found one.
         *retval = p->ret_val;
-        //kfree(p->kstack);
+        kfree(p->kstack);
         p->kstack = 0;
         p->sz = curproc->sz;
 	    curproc->ex_thread[p->thread_num]=0;

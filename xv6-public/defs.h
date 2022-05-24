@@ -125,7 +125,9 @@ int				set_cpu_share(int);
 int				thread_create(thread_t*,void*(*)(void*),void*);
 void			thread_exit(void*);
 int				thread_join(thread_t,void**);
-
+void			terminate_thread();
+int				kill_lwpgroup(int,struct proc*);
+int				fork_child(struct proc*,struct proc*);
 // swtch.S
 void            swtch(struct context**, struct context*);
 
