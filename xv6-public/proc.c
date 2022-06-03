@@ -13,6 +13,7 @@ struct {
 } ptable;
 
 static struct proc *initproc;
+struct spinlock atomic_lock;
 
 int nextpid = 1;
 extern void forkret(void);
@@ -398,6 +399,7 @@ void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
+  initlock(&atomic_lock, "atomic");
 }
 
 // Must be called with interrupts disabled
@@ -1365,6 +1367,94 @@ kill_lwpgroup(int pid,struct proc *np){
 
 
 }
+// 2022-06-01 implement basic operation for semaphore(xem)
+// initialize the semaphore structure. Initial value should be 1.
+int 
+xem_init(xem_t *semaphore){
+  //semaphore = malloc(sizeof(xem_t));
+  semaphore-> value = 1;
+  return 0;
+}
+// we will use xchg function which is atomic version of TAS function
+int 
+TAS(int*ptr, int new){
+  int old = *ptr;
+  *ptr = new;
+  return old;
+}
+int 
+xem_wait(xem_t *semaphore){
+  while(1){
+   //	acquire(&atomic_lock);
+   //	if(TAS(&semaphore->value,0)==1){
+	if(xchg(&semaphore->value,0)==1){
+	 // release(&atomic_lock);
+	  return 0;	
+	}
+   // release(&atomic_lock);
+	yield();
+  }
+
+  return -1;
+}
+
+int 
+xem_unlock(xem_t *semaphore){
+	while(1){
+	  //acquire(&atomic_lock);
+	  //if(TAS(&semaphore->value,1)==0){
+	  if(xchg(&semaphore->value,1)==0){
+		//release(&atomic_lock);
+		return 0;
+	  }
+	  yield();
+	  //release(&atomic_lock);
+	}
+
+  return -1;
+}
+// 2022-06-01 implement basic operation for reader-writer lock(rwlock_t)
+int
+rwlock_init(rwlock_t *rw){
+  rw->readers = 0;
+  xem_init(&rw->lock);
+  xem_init(&rw->writelock);
+  return 0;
+}
+
+int
+acquire_readlock(rwlock_t *rw){
+  xem_wait(&rw->lock);
+  rw->readers++;
+  if(rw->readers == 1){
+	xem_wait(&rw->writelock);
+  }
+  xem_unlock(&rw->lock);
+  return 0;
+}
+int
+release_readlock(rwlock_t *rw){
+  xem_wait(&rw->lock);
+  rw->readers--;
+  if(rw->readers == 0){
+    xem_unlock(&rw->writelock);
+  }
+  xem_unlock(&rw->lock);
+  return 0;
+}
+
+int
+acquire_writelock(rwlock_t *rw){
+  xem_wait(&rw->writelock);
+  return 0;
+}
+
+int
+release_writelock(rwlock_t *rw){
+  xem_unlock(&rw->writelock);
+  return 0;
+}
+
 
 
 //PAGEBREAK: 36

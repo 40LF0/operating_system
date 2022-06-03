@@ -32,6 +32,15 @@ int set_cpu_share(int);
 int thread_create(thread_t*,void*(*)(void*),void*);
 void thread_exit(void*);
 int thread_join(thread_t,void**);
+int xem_init(xem_t*);
+int TAS(int*,int);
+int xem_wait(xem_t*);
+int xem_unlock(xem_t*);
+int	rwlock_init(rwlock_t*);
+int	acquire_readlock(rwlock_t*);
+int release_readlock(rwlock_t*);
+int acquire_writelock(rwlock_t*);
+int release_writelock(rwlock_t*);
 
 
 // ulib.c

@@ -112,6 +112,15 @@ extern int sys_set_cpu_share(void);
 extern int sys_thread_create(void);
 extern int sys_thread_exit(void);
 extern int sys_thread_join(void);
+extern int sys_xem_init(void);
+extern int sys_xem_wait(void);
+extern int sys_xem_unlock(void);
+extern int sys_rwlock_init(void);
+extern int sys_acquire_readlock(void);
+extern int sys_release_readlock(void);
+extern int sys_acquire_writelock(void);
+extern int sys_release_writelock(void);
+
 
 
 static int (*syscalls[])(void) = {
@@ -145,6 +154,14 @@ static int (*syscalls[])(void) = {
 [SYS_thread_create] sys_thread_create,
 [SYS_thread_exit] sys_thread_exit,
 [SYS_thread_join] sys_thread_join,
+[SYS_xem_init] sys_xem_init,
+[SYS_xem_wait] sys_xem_wait,
+[SYS_xem_unlock] sys_xem_unlock,
+[SYS_rwlock_init] sys_rwlock_init,
+[SYS_acquire_readlock] sys_acquire_readlock,
+[SYS_release_readlock] sys_release_readlock,
+[SYS_acquire_writelock] sys_acquire_writelock,
+[SYS_release_writelock] sys_release_writelock,
 };
 
 void

@@ -128,6 +128,17 @@ int				thread_join(thread_t,void**);
 void			terminate_thread();
 int				kill_lwpgroup(int,struct proc*);
 int				fork_child(struct proc*,struct proc*);
+int				xem_init(xem_t *semaphore);
+int				TAS(int*ptr,int new);
+int				xem_wait(xem_t *semaphore);
+int				xem_unlock(xem_t *semaphore);
+int				rwlock_init(rwlock_t *rw);
+int             acquire_readlock(rwlock_t *rw);
+int             release_readlock(rwlock_t *rw);
+int             acquire_writelock(rwlock_t *rw);
+int             release_writelock(rwlock_t *rw);
+
+
 // swtch.S
 void            swtch(struct context**, struct context*);
 

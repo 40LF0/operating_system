@@ -6,7 +6,6 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
-
   
 
 // Simple system call
@@ -112,6 +111,78 @@ sys_thread_join(void)
   //cprintf("join su\n");
   return re;
 
+}
+// 2022-06-01 wrapper fun for syscall xem_init
+int
+sys_xem_init(void)
+{
+  xem_t *xem;
+  if(argptr(0,(char**)&xem, sizeof xem) <0) 
+    return -1; 
+  return xem_init(xem);
+}
+// 2022-06-01 wrapper fun for syscall xem_wait
+int
+sys_xem_wait(void)
+{
+  xem_t *xem;
+  if(argptr(0,(char**)&xem, sizeof xem) <0) 
+    return -1; 
+  return xem_wait(xem);
+}
+// 2022-06-01 wrapper fun for syscall xem_unlock
+int
+sys_xem_unlock(void)
+{
+  xem_t *xem;
+  if(argptr(0,(char**)&xem, sizeof xem) <0) 
+    return -1; 
+  return xem_unlock(xem);
+}
+// 2022-06-03 wrapper fun for syscall rwlock_init
+int
+sys_rwlock_init(void)
+{
+  rwlock_t *rw;
+  if(argptr(0,(char**)&rw, sizeof rw) <0) 
+    return -1; 
+  return rwlock_init(rw);
+}
+// 2022-06-03 wrapper fun for syscall acquire_readlock
+int
+sys_acquire_readlock(void)
+{
+  rwlock_t *rw;
+  if(argptr(0,(char**)&rw, sizeof rw) <0) 
+    return -1;
+  return acquire_readlock(rw);
+}
+// 2022-06-03 wrapper fun for syscall release_readlock
+int
+sys_release_readlock(void)
+{
+  rwlock_t *rw;
+  if(argptr(0,(char**)&rw, sizeof rw) <0)
+    return -1;
+  return release_readlock(rw);
+}
+// 2022-06-03 wrapper fun for syscall acquire_writelock
+int
+sys_acquire_writelock(void)
+{
+  rwlock_t *rw;
+  if(argptr(0,(char**)&rw, sizeof rw) <0)
+    return -1;
+  return acquire_writelock(rw);
+}
+// 2022-06-03 wrapper fun for syscall release_writelock
+int
+sys_release_writelock(void)
+{
+  rwlock_t *rw;
+  if(argptr(0,(char**)&rw, sizeof rw) <0)
+    return -1;
+  return release_writelock(rw);
 }
 
 
