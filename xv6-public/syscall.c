@@ -116,10 +116,10 @@ extern int sys_xem_init(void);
 extern int sys_xem_wait(void);
 extern int sys_xem_unlock(void);
 extern int sys_rwlock_init(void);
-extern int sys_acquire_readlock(void);
-extern int sys_release_readlock(void);
-extern int sys_acquire_writelock(void);
-extern int sys_release_writelock(void);
+extern int sys_rwlock_acquire_readlock(void);
+extern int sys_rwlock_release_readlock(void);
+extern int sys_rwlock_acquire_writelock(void);
+extern int sys_rwlock_release_writelock(void);
 
 
 
@@ -158,10 +158,10 @@ static int (*syscalls[])(void) = {
 [SYS_xem_wait] sys_xem_wait,
 [SYS_xem_unlock] sys_xem_unlock,
 [SYS_rwlock_init] sys_rwlock_init,
-[SYS_acquire_readlock] sys_acquire_readlock,
-[SYS_release_readlock] sys_release_readlock,
-[SYS_acquire_writelock] sys_acquire_writelock,
-[SYS_release_writelock] sys_release_writelock,
+[SYS_rwlock_acquire_readlock] sys_rwlock_acquire_readlock,
+[SYS_rwlock_release_readlock] sys_rwlock_release_readlock,
+[SYS_rwlock_acquire_writelock] sys_rwlock_acquire_writelock,
+[SYS_rwlock_release_writelock] sys_rwlock_release_writelock,
 };
 
 void

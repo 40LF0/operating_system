@@ -1423,7 +1423,7 @@ rwlock_init(rwlock_t *rw){
 }
 
 int
-acquire_readlock(rwlock_t *rw){
+rwlock_acquire_readlock(rwlock_t *rw){
   xem_wait(&rw->lock);
   rw->readers++;
   if(rw->readers == 1){
@@ -1433,7 +1433,7 @@ acquire_readlock(rwlock_t *rw){
   return 0;
 }
 int
-release_readlock(rwlock_t *rw){
+rwlock_release_readlock(rwlock_t *rw){
   xem_wait(&rw->lock);
   rw->readers--;
   if(rw->readers == 0){
@@ -1444,13 +1444,13 @@ release_readlock(rwlock_t *rw){
 }
 
 int
-acquire_writelock(rwlock_t *rw){
+rwlock_acquire_writelock(rwlock_t *rw){
   xem_wait(&rw->writelock);
   return 0;
 }
 
 int
-release_writelock(rwlock_t *rw){
+rwlock_release_writelock(rwlock_t *rw){
   xem_unlock(&rw->writelock);
   return 0;
 }

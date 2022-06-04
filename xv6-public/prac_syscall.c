@@ -150,39 +150,39 @@ sys_rwlock_init(void)
 }
 // 2022-06-03 wrapper fun for syscall acquire_readlock
 int
-sys_acquire_readlock(void)
+sys_rwlock_acquire_readlock(void)
 {
   rwlock_t *rw;
   if(argptr(0,(char**)&rw, sizeof rw) <0) 
     return -1;
-  return acquire_readlock(rw);
+  return rwlock_acquire_readlock(rw);
 }
 // 2022-06-03 wrapper fun for syscall release_readlock
 int
-sys_release_readlock(void)
+sys_rwlock_release_readlock(void)
 {
   rwlock_t *rw;
   if(argptr(0,(char**)&rw, sizeof rw) <0)
     return -1;
-  return release_readlock(rw);
+  return rwlock_release_readlock(rw);
 }
 // 2022-06-03 wrapper fun for syscall acquire_writelock
 int
-sys_acquire_writelock(void)
+sys_rwlock_acquire_writelock(void)
 {
   rwlock_t *rw;
   if(argptr(0,(char**)&rw, sizeof rw) <0)
     return -1;
-  return acquire_writelock(rw);
+  return rwlock_acquire_writelock(rw);
 }
 // 2022-06-03 wrapper fun for syscall release_writelock
 int
-sys_release_writelock(void)
+sys_rwlock_release_writelock(void)
 {
   rwlock_t *rw;
   if(argptr(0,(char**)&rw, sizeof rw) <0)
     return -1;
-  return release_writelock(rw);
+  return rwlock_release_writelock(rw);
 }
 
 

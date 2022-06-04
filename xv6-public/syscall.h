@@ -33,7 +33,7 @@
 #define SYS_xem_wait 32
 #define SYS_xem_unlock 33
 #define SYS_rwlock_init 34
-#define SYS_acquire_readlock 35
-#define SYS_release_readlock 36
-#define SYS_acquire_writelock 37
-#define SYS_release_writelock 38
+#define SYS_rwlock_acquire_readlock 35
+#define SYS_rwlock_release_readlock 36
+#define SYS_rwlock_acquire_writelock 37
+#define SYS_rwlock_release_writelock 38

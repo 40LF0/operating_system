@@ -37,10 +37,10 @@ int TAS(int*,int);
 int xem_wait(xem_t*);
 int xem_unlock(xem_t*);
 int	rwlock_init(rwlock_t*);
-int	acquire_readlock(rwlock_t*);
-int release_readlock(rwlock_t*);
-int acquire_writelock(rwlock_t*);
-int release_writelock(rwlock_t*);
+int	rwlock_acquire_readlock(rwlock_t*);
+int rwlock_release_readlock(rwlock_t*);
+int rwlock_acquire_writelock(rwlock_t*);
+int rwlock_release_writelock(rwlock_t*);
 
 
 // ulib.c

@@ -10,14 +10,14 @@ rwlock_t rwl;
 
 void *writer(void *arg){
   for(int i = 0 ; i < loops ; i ++){
-	if(acquire_writelock(&rwl) != 0){
+	if(rwlock_acquire_writelock(&rwl) != 0){
 	  printf(1,"acquire_writelock error\n");
 	  exit();
 	}
 
 	buffer++;
     printf(1,"write %d\n",buffer);
-	if(release_writelock(&rwl) !=0){
+	if(rwlock_release_writelock(&rwl) !=0){
 	  printf(1,"release_writelock error\n");
 	  exit();
 	}
@@ -29,14 +29,14 @@ void *writer(void *arg){
 
 void *reader(void *arg){
   for(int i = 0 ; i < loops ; i ++){
-	if(acquire_writelock(&rwl) != 0){
+	if(rwlock_acquire_writelock(&rwl) != 0){
 	  printf(1,"acquire_readlock error\n");
 	  exit();
 	}
 
 	printf(1,"read: %d\n",buffer);
 
-	if(release_writelock(&rwl) !=0){
+	if(rwlock_release_writelock(&rwl) !=0){
 	  printf(1,"release_readlock error\n");
 	  exit();
 	}
