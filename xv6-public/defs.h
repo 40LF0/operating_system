@@ -33,6 +33,9 @@ void            fileinit(void);
 int             fileread(struct file*, char*, int n);
 int             filestat(struct file*, struct stat*);
 int             filewrite(struct file*, char*, int n);
+int             filepread(struct file*, char*, int n, int off); 
+int             filepwrite(struct file*, char*, int n, int off); 
+
 
 // fs.c
 void            readsb(int dev, struct superblock *sb);

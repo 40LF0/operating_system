@@ -17,3 +17,10 @@ typedef struct
   xem_t writelock;
   int readers;
 }rwlock_t;
+
+//2022-06-12 add thread_safe_guard type
+typedef struct{
+  rwlock_t rw; 
+  int fd; 
+}thread_safe_guard;
+

@@ -144,7 +144,7 @@ tags: $(OBJS) entryother.S _init
 vectors.S: vectors.pl
 	./vectors.pl > vectors.S
 
-ULIB = ulib.o usys.o printf.o umalloc.o
+ULIB = ulib.o usys.o printf.o umalloc.o thread_safe_guard.o
 
 _%: %.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
@@ -191,6 +191,7 @@ UPROGS=\
 	_test_xem\
 	_test_rwl\
 	_test_file\
+	_test_pfile\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -261,8 +262,8 @@ EXTRA=\
 	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
 	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
 	printf.c umalloc.c my_userapp.c my_userapp_2.c test_yield.c\
-	test_scheduler.c test_thread.c test_thread2.c\
-	test_xem.c test_rwl.c test_file.c\
+	test_scheduler.c test_thread.c test_thread2.c test_pfile.c\
+	test_xem.c test_rwl.c test_file.c thread_safe_guard.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
 
