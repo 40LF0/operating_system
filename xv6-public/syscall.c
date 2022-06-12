@@ -164,8 +164,8 @@ static int (*syscalls[])(void) = {
 [SYS_rwlock_release_readlock] sys_rwlock_release_readlock,
 [SYS_rwlock_acquire_writelock] sys_rwlock_acquire_writelock,
 [SYS_rwlock_release_writelock] sys_rwlock_release_writelock,
-[SYS_pwrite]   sys_pwrite,
-[SYS_read]    sys_pread,
+[SYS_pwrite] sys_pwrite,
+[SYS_pread] sys_pread,
 };
 
 void

@@ -204,7 +204,6 @@ filepwrite(struct file *f, char *addr, int n,int off)
       ilock(f->ip);
       if ((r = writei(f->ip, addr + i, offset, n1)) > 0)
         offset += r;
-
       iunlock(f->ip);
       end_op();
 

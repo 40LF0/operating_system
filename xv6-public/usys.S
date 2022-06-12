@@ -48,4 +48,3 @@ SYSCALL(rwlock_acquire_writelock)
 SYSCALL(rwlock_release_writelock)
 SYSCALL(pwrite)
 SYSCALL(pread)
-
