@@ -31,19 +31,17 @@ readtest(const char* filename, const char* answer, int line) {
 void 
 test_pwrite1() {
   int fd = open("testfile", O_CREATE|O_WRONLY);
-  // result: asdf
-  ASSERT(pwrite(fd, "asdf", 5, 0), 5);
-  readtest("testfile", "asdf", __LINE__);
+  // result: abcd
+  ASSERT(pwrite(fd, "abcd", 5, 0), 5);
+  readtest("testfile", "abcd", __LINE__);
 	
-  // result: asqwert
-  ASSERT(pwrite(fd, "qwert", 6, 2), 6);
-  readtest("testfile", "asqwert", __LINE__);
+  // result: abefghi
+  ASSERT(pwrite(fd, "efghi", 6, 2), 6);
+  readtest("testfile", "abefghi", __LINE__);
 	
-  // result: aoperrt
-  ASSERT(pwrite(fd, "oper", 4, 1), 4);
-  // result: zxperrt
-  ASSERT(pwrite(fd, "zx", 2, 0), 2);
-  readtest("testfile", "zxperrt", __LINE__);
+  // result: ajklnhi
+  ASSERT(pwrite(fd, "jkln", 4, 1), 4);
+  readtest("testfile", "ajklnhi", __LINE__);
 	
   printf(1, "test_pwrite1 done\n");
   close(fd);
@@ -53,25 +51,25 @@ test_pwrite1() {
 void 
 test_pwrite2() {
   int fd = open("testfile", O_CREATE|O_WRONLY);
-  // result: asdfghj
-  ASSERT(write(fd, "asdfghj", 8), 8);
-  // result: qwerthj
-  ASSERT(pwrite(fd, "qwert", 5, 0), 5);
-  // result: qzxrthj
-  ASSERT(pwrite(fd, "zx", 2, 1), 2);
-  readtest("testfile", "qzxrthj", __LINE__);
+  // result: abcdefg
+  ASSERT(write(fd, "abcdefg", 8), 8);
+  // result: hijkefg
+  ASSERT(pwrite(fd, "hijk", 4, 0), 4);
+  // result: hlnkefg
+  ASSERT(pwrite(fd, "ln", 2, 1), 2);
+  readtest("testfile", "hlnkefg", __LINE__);
   printf(1, "test_pwrite2 done\n");
   close(fd);
 }
 	
-int __test_pwrite3_buffer[1024];
+int __test_pwrite3_buffer[1024*1024*16];
 
-// case 3. pwrite more than 1536 bytes (maximum log transaction size)
+// case 3. pwrite 1024*1024*16  bytes 
 void 
 test_pwrite3() {
   int i;
   int *buffer = __test_pwrite3_buffer;
-  for (i = 0; i < 1024; ++i)
+  for (i = 0; i < 1024*1024*16; ++i)
     buffer[i] = i;
 	
   int fd = open("testfile", O_CREATE|O_WRONLY);
@@ -83,7 +81,7 @@ test_pwrite3() {
   fd = open("testfile", O_RDONLY);
   read(fd, buffer, sizeof(buffer));
 	
-  for (i = 0; i < 1024; ++i)
+  for (i = 0; i < 1024*1024*16; ++i)
     if (buffer[i] != i) {
       printf(1, "wrong in line %d, value i=%d\n", __LINE__, i);
       exit();
